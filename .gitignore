@@ -1,0 +1,15 @@
+token.txt
+active.txt
+outbox.txt
+server.log
+test-haiku.out
+__pycache__/
+*.bak*
+uploads/
+run.ps1
+config.json
+hermes-mobile.exe
+run.ps1
+issue-state-db-size.md
+server.err.log
+tray.log
