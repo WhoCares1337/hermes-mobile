@@ -83,6 +83,14 @@ The phone page and the tray menu are in English by default. Set `"lang": "de"` i
 - The page refreshes every 4 seconds. There is no streaming.
 - Windows only.
 
+## Tests
+
+```
+python -m unittest discover -s tests -v
+```
+
+Covers message handling, language strings, page rendering, the HTTP API (auth, messages, upload) and path safety. The desktop automation (UI Automation, keystrokes) is not covered by tests: it needs a live Hermes Desktop window.
+
 ## Files
 
 - `server.py` - the server (standard library only)
