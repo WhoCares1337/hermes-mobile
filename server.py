@@ -55,7 +55,7 @@ def tailscale_ip():
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):
-        sys.exit("config.json fehlt. Start mit: python server.py --init [--host <ip>]")
+        sys.exit("config.json is missing. Run: python server.py --init [--host <ip>]")
     with open(CONFIG_FILE, encoding="utf-8") as f:
         return json.load(f)
 
@@ -272,11 +272,11 @@ def _fill(template, **kw):
 
 def _set_error(r):
     if r.returncode == 2:
-        state["error"] = f"Desktop-Fenster '{DESKTOP_WINDOW}' nicht gefunden. Ist die App offen (nicht minimiert)?"
+        state["error"] = T("err_window_missing", w=DESKTOP_WINDOW)
     elif r.returncode == 5:
-        state["error"] = "Hermes war nicht im Vordergrund. Nichts wurde eingefügt, bitte nochmal senden."
+        state["error"] = T("err_not_foreground")
     elif r.returncode == 3:
-        state["error"] = "Bot-Schaltfläche nicht gefunden (Sidebar eingeklappt?)"
+        state["error"] = T("err_bot_button")
     elif r.returncode != 0:
         state["error"] = (r.stderr or r.stdout)[-800:]
     else:
@@ -330,6 +330,65 @@ def _run_switch(bot):
         lock.release()
 
 
+# UI and message texts. Language is set by "lang" in config.json (en default, de).
+STR = {
+    "en": {
+        "activate": "Activate in desktop", "placeholder": "Message...", "image_title": "Image",
+        "send": "Send", "error_status": "Error ", "input_to": "Input goes to: ",
+        "viewing": "Viewing: ", "activate_hint": " (activate here to write)",
+        "busy_loading": "Desktop busy...", "last_error": "Last error: ",
+        "busy_retry": "Desktop busy, try again", "not_active": "Not active: activate in desktop first",
+        "send_failed": "Send failed: ", "unknown_bot": "Unknown bot", "activate_failed": "Activate failed: ",
+        "switching": "Desktop switching...", "only_images": "Images only", "uploading": "Uploading image...",
+        "upload_failed": "Upload failed: ", "inserting": "Inserting image in desktop...",
+        "image_send_failed": "Image send failed: ",
+        "err_window_missing": "Desktop window '{w}' not found. Is the app open (not minimized)?",
+        "err_not_foreground": "Hermes was not in front. Nothing was inserted, please send again.",
+        "err_bot_button": "Bot button not found (sidebar collapsed?)",
+        "status_starting": "starting", "status_ok": "running, desktop open",
+        "status_no_desktop": "running, desktop window not found", "status_stopped": "stopped",
+        "menu_status": "Status", "menu_version": "Version", "menu_restart": "Restart",
+        "menu_reconnect": "Reconnect (check Tailscale IP)", "menu_copy_url": "Copy URL",
+        "menu_open_log": "Open log", "menu_autostart": "Start at login", "menu_quit": "Quit",
+        "setup_needed": "Not set up yet. Run once in this folder:",
+    },
+    "de": {
+        "activate": "Im Desktop aktivieren", "placeholder": "Nachricht...", "image_title": "Bild",
+        "send": "Senden", "error_status": "Fehler ", "input_to": "Eingabe geht in: ",
+        "viewing": "Angesehen: ", "activate_hint": " (zum Schreiben hier aktivieren)",
+        "busy_loading": "Desktop beschäftigt...", "last_error": "Letzter Fehler: ",
+        "busy_retry": "Desktop beschäftigt, gleich nochmal", "not_active": "Nicht aktiv: erst im Desktop aktivieren",
+        "send_failed": "Senden fehlgeschlagen: ", "unknown_bot": "Unbekannter Bot",
+        "activate_failed": "Aktivieren fehlgeschlagen: ", "switching": "Desktop wechselt...",
+        "only_images": "Nur Bilder", "uploading": "Lade Bild hoch...",
+        "upload_failed": "Upload fehlgeschlagen: ", "inserting": "Füge Bild im Desktop ein...",
+        "image_send_failed": "Bild senden fehlgeschlagen: ",
+        "err_window_missing": "Desktop-Fenster '{w}' nicht gefunden. Ist die App offen (nicht minimiert)?",
+        "err_not_foreground": "Hermes war nicht im Vordergrund. Nichts wurde eingefügt, bitte nochmal senden.",
+        "err_bot_button": "Bot-Schaltfläche nicht gefunden (Sidebar eingeklappt?)",
+        "status_starting": "startet", "status_ok": "läuft, Desktop offen",
+        "status_no_desktop": "läuft, Desktop nicht gefunden", "status_stopped": "gestoppt",
+        "menu_status": "Status", "menu_version": "Version", "menu_restart": "Neu starten",
+        "menu_reconnect": "Neu verbinden (Tailscale-IP prüfen)", "menu_copy_url": "URL kopieren",
+        "menu_open_log": "Log öffnen", "menu_autostart": "Autostart bei Anmeldung", "menu_quit": "Beenden",
+        "setup_needed": "Noch nicht eingerichtet. Im Ordner einmal ausführen:",
+    },
+}
+LANG = CFG.get("lang", "en") if CFG.get("lang") in ("en", "de") else "en"
+
+
+def T(key, **kw):
+    text = STR[LANG][key]
+    return text.format(**kw) if kw else text
+
+
+def render_page():
+    page = PAGE
+    for key, value in STR[LANG].items():
+        page = page.replace("{{" + key + "}}", value)
+    return page
+
+
 PAGE = """<!doctype html><html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hermes</title><style>
@@ -349,12 +408,12 @@ background:#222;color:#eee;resize:none}
 button:disabled,#t:disabled{opacity:.4}
 #st{font-size:12px;color:#aaa;padding:0 10px 6px}
 </style></head><body>
-<div id="top"><select id="sel"></select><button id="act">Im Desktop aktivieren</button></div>
+<div id="top"><select id="sel"></select><button id="act">{{activate}}</button></div>
 <div id="info"></div>
 <div id="log"></div><div id="st"></div>
 <div id="bar"><input type="file" id="f" accept="image/*" style="display:none">
-<button id="ib" title="Bild">📷</button><textarea id="t" rows="2" placeholder="Nachricht..."></textarea>
-<button id="b">Senden</button></div>
+<button id="ib" title="{{image_title}}">📷</button><textarea id="t" rows="2" placeholder="{{placeholder}}"></textarea>
+<button id="b">{{send}}</button></div>
 <script>
 const TOK=new URLSearchParams(location.search).get("t")||"";
 const q=(p,extra="")=>p+"?t="+encodeURIComponent(TOK)+extra;
@@ -380,12 +439,12 @@ function label(id){const b=bots.find(x=>x.id===id);return b?b.label:id}
 async function load(){
  if(!sel.value)await loadBots();
  const r=await fetch(q("/api/messages",`&bot=${encodeURIComponent(sel.value)}`));
- if(!r.ok){st.textContent="Fehler "+r.status;return}
+ if(!r.ok){st.textContent="{{error_status}}"+r.status;return}
  const d=await r.json();
  const canWrite=sel.value===d.active;
  info.textContent=canWrite
-   ? "Eingabe geht in: "+label(d.active)
-   : "Angesehen: "+label(sel.value)+" · Eingabe geht in: "+label(d.active)+" (zum Schreiben hier aktivieren)";
+   ? "{{input_to}}"+label(d.active)
+   : "{{viewing}}"+label(sel.value)+" · {{input_to}}"+label(d.active)+"{{activate_hint}}";
  t.disabled=btn.disabled=ib.disabled=!canWrite;act.disabled=canWrite;
  log.innerHTML="";
  for(const m of d.messages){
@@ -395,40 +454,40 @@ async function load(){
   div.append(h,p);log.append(div);
  }
  if(atBottom)log.scrollTop=log.scrollHeight;
- st.textContent=d.busy?"Desktop beschäftigt...":(d.error?"Letzter Fehler: "+d.error:"");
+ st.textContent=d.busy?"{{busy_loading}}":(d.error?"{{last_error}}"+d.error:"");
 }
 async function send(){
  const text=t.value.trim();if(!text)return;
  const r=await fetch(q("/api/send"),{method:"POST",headers:{"Content-Type":"application/json"},
   body:JSON.stringify({text,bot:sel.value})});
- if(r.status===409){st.textContent="Desktop beschäftigt, gleich nochmal";return}
- if(r.status===403){st.textContent="Nicht aktiv: erst im Desktop aktivieren";return}
- if(!r.ok){st.textContent="Senden fehlgeschlagen: "+r.status;return}
+ if(r.status===409){st.textContent="{{busy_retry}}";return}
+ if(r.status===403){st.textContent="{{not_active}}";return}
+ if(!r.ok){st.textContent="{{send_failed}}"+r.status;return}
  t.value="";atBottom=true;setTimeout(load,1500);
 }
 async function activate(){
  const r=await fetch(q("/api/activate"),{method:"POST",headers:{"Content-Type":"application/json"},
   body:JSON.stringify({bot:sel.value})});
- if(r.status===409){st.textContent="Desktop beschäftigt, gleich nochmal";return}
- if(r.status===400){st.textContent="Unbekannter Bot";return}
- if(!r.ok){st.textContent="Aktivieren fehlgeschlagen: "+r.status;return}
- st.textContent="Desktop wechselt...";setTimeout(async()=>{await loadBots();load()},2500);
+ if(r.status===409){st.textContent="{{busy_retry}}";return}
+ if(r.status===400){st.textContent="{{unknown_bot}}";return}
+ if(!r.ok){st.textContent="{{activate_failed}}"+r.status;return}
+ st.textContent="{{switching}}";setTimeout(async()=>{await loadBots();load()},2500);
 }
 btn.onclick=send;act.onclick=activate;
 ib.onclick=()=>fi.click();
 fi.onchange=async()=>{
  const file=fi.files[0];fi.value="";if(!file)return;
- if(!file.type.startsWith("image/")){st.textContent="Nur Bilder";return}
- st.textContent="Lade Bild hoch...";
+ if(!file.type.startsWith("image/")){st.textContent="{{only_images}}";return}
+ st.textContent="{{uploading}}";
  const up=await fetch(q("/api/upload"),{method:"POST",headers:{"Content-Type":file.type},body:file});
- if(!up.ok){st.textContent="Upload fehlgeschlagen: "+up.status;return}
+ if(!up.ok){st.textContent="{{upload_failed}}"+up.status;return}
  const d=await up.json();
- st.textContent="Füge Bild im Desktop ein...";
+ st.textContent="{{inserting}}";
  const r=await fetch(q("/api/send_image"),{method:"POST",headers:{"Content-Type":"application/json"},
   body:JSON.stringify({bot:sel.value,file:d.file})});
- if(r.status===409){st.textContent="Desktop beschäftigt, gleich nochmal";return}
- if(r.status===403){st.textContent="Nicht aktiv: erst im Desktop aktivieren";return}
- if(!r.ok){st.textContent="Bild senden fehlgeschlagen: "+r.status;return}
+ if(r.status===409){st.textContent="{{busy_retry}}";return}
+ if(r.status===403){st.textContent="{{not_active}}";return}
+ if(!r.ok){st.textContent="{{image_send_failed}}"+r.status;return}
  atBottom=true;setTimeout(load,4000);
 };
 loadBots().then(load);setInterval(load,4000);
@@ -461,7 +520,7 @@ class H(BaseHTTPRequestHandler):
         if not self._auth(q):
             return self._send(403, "forbidden", "text/plain")
         if u.path == "/":
-            return self._send(200, PAGE, "text/html")
+            return self._send(200, render_page(), "text/html")
         if u.path == "/api/bots":
             refresh_bots()
             try:
@@ -554,8 +613,8 @@ def init(argv):
         host = argv[argv.index("--host") + 1]
     host = host or tailscale_ip()
     if not host:
-        sys.exit("Keine IP gefunden. Bitte: python server.py --init --host <private-ip>")
-    cfg = {"host": host, "port": 8765, "desktop_window": "Hermes", "bots": {}}
+        sys.exit("No IP found. Run: python server.py --init --host <private-ip>")
+    cfg = {"host": host, "port": 8765, "desktop_window": "Hermes", "bots": {}, "lang": "en"}
     if not os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=2, ensure_ascii=False)
@@ -563,7 +622,7 @@ def init(argv):
         with open(TOKEN_FILE, "w", encoding="utf-8") as f:
             f.write(secrets.token_urlsafe(24))
     token = open(TOKEN_FILE, encoding="utf-8").read().strip()
-    print(f"config.json geschrieben. Bots gefunden: {', '.join(discover_bots({})) or 'keine'}")
+    print(f"config.json written. Bots found: {', '.join(discover_bots({})) or 'none'}")
     print(f"URL: http://{host}:8765/?t={token}")
 
 
@@ -584,6 +643,6 @@ if __name__ == "__main__":
     else:
         TOKEN = open(TOKEN_FILE, encoding="utf-8").read().strip() if os.path.exists(TOKEN_FILE) else ""
         if not TOKEN:
-            sys.exit("token.txt fehlt. Erst: python server.py --init")
+            sys.exit("token.txt is missing. Run first: python server.py --init")
         print(f"listening on http://{HOST}:{PORT}/?t={TOKEN}", flush=True)
         ThreadingHTTPServer((HOST, PORT), H).serve_forever()

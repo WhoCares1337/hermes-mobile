@@ -113,7 +113,7 @@ class App:
         self.httpd = None
         self.started_at = None
         self.stopping = False
-        self.status = "startet"
+        self.status = srv.T("status_starting")
         self.icon = None
         self.lock = threading.Lock()
 
@@ -174,11 +174,11 @@ class App:
         srv_ok = self.server_running()
         desk_ok = desktop_window_open()
         if srv_ok and desk_ok:
-            self.status, color = "läuft, Desktop offen", GREEN
+            self.status, color = srv.T("status_ok"), GREEN
         elif srv_ok:
-            self.status, color = "läuft, Desktop nicht gefunden", YELLOW
+            self.status, color = srv.T("status_no_desktop"), YELLOW
         else:
-            self.status, color = "gestoppt", RED
+            self.status, color = srv.T("status_stopped"), RED
         if self.icon:
             self.icon.icon = make_icon(color)
             self.icon.title = f"{APP_NAME}: {self.status}"
@@ -210,17 +210,17 @@ class App:
 
     def menu(self):
         return pystray.Menu(
-            pystray.MenuItem(lambda _: f"Status: {self.status}", None, enabled=False),
-            pystray.MenuItem(f"Version {srv.VERSION}", None, enabled=False),
+            pystray.MenuItem(lambda _: f"{srv.T('menu_status')}: {self.status}", None, enabled=False),
+            pystray.MenuItem(f"{srv.T('menu_version')} {srv.VERSION}", None, enabled=False),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Neu starten", self.restart),
-            pystray.MenuItem("Neu verbinden (Tailscale-IP prüfen)", self.reconnect),
-            pystray.MenuItem("URL kopieren", self.copy_url),
-            pystray.MenuItem("Log öffnen", self.open_log),
-            pystray.MenuItem("Autostart bei Anmeldung", self.toggle_autostart,
+            pystray.MenuItem(srv.T("menu_restart"), self.restart),
+            pystray.MenuItem(srv.T("menu_reconnect"), self.reconnect),
+            pystray.MenuItem(srv.T("menu_copy_url"), self.copy_url),
+            pystray.MenuItem(srv.T("menu_open_log"), self.open_log),
+            pystray.MenuItem(srv.T("menu_autostart"), self.toggle_autostart,
                              checked=lambda _: autostart_enabled()),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Beenden", self.quit),
+            pystray.MenuItem(srv.T("menu_quit"), self.quit),
         )
 
     def run(self):
@@ -245,7 +245,7 @@ def main():
     setup_logging()
     single_instance()
     if not os.path.exists(srv.CONFIG_FILE) or not os.path.exists(srv.TOKEN_FILE):
-        message_box("Noch nicht eingerichtet. Im Ordner einmal ausführen:\n"
+        message_box(srv.T("setup_needed") + "\n"
                     "hermes-mobile.exe --init")
         return
     logging.info("tray start, version %s", srv.VERSION)

@@ -35,6 +35,10 @@ To override any of this, use `bots` in `config.json`:
 
 `HERMES_HOME` is respected. Default: `%LOCALAPPDATA%\hermes`.
 
+## Language
+
+The phone page and the tray menu are in English by default. Set `"lang": "de"` in `config.json` for German.
+
 ## Requirements
 
 - Windows 10/11 with PowerShell
