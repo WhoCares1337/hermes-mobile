@@ -129,7 +129,10 @@ def set_active(bot):
 
 def bot_session(bot):
     """Bot Chat session of the bot; falls back to its newest desktop session."""
-    con = sqlite3.connect(f"file:{BOTS[bot]['db']}?mode=ro", uri=True, timeout=5)
+    try:
+        con = sqlite3.connect(f"file:{BOTS[bot]['db']}?mode=ro", uri=True, timeout=5)
+    except sqlite3.Error:
+        return None
     try:
         row = con.execute(
             "SELECT id FROM sessions WHERE source='desktop' AND title='Bot Chat' "
@@ -350,6 +353,7 @@ STR = {
         "menu_status": "Status", "menu_version": "Version", "menu_restart": "Restart",
         "menu_reconnect": "Reconnect (check Tailscale IP)", "menu_copy_url": "Copy URL",
         "menu_open_log": "Open log", "menu_autostart": "Start at login", "menu_quit": "Quit",
+        "menu_language": "Language",
         "setup_needed": "Not set up yet. Run once in this folder:",
     },
     "de": {
@@ -371,6 +375,7 @@ STR = {
         "menu_status": "Status", "menu_version": "Version", "menu_restart": "Neu starten",
         "menu_reconnect": "Neu verbinden (Tailscale-IP prüfen)", "menu_copy_url": "URL kopieren",
         "menu_open_log": "Log öffnen", "menu_autostart": "Autostart bei Anmeldung", "menu_quit": "Beenden",
+        "menu_language": "Sprache",
         "setup_needed": "Noch nicht eingerichtet. Im Ordner einmal ausführen:",
     },
 }

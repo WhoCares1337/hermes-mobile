@@ -199,6 +199,17 @@ class App:
             open(LOG_FILE, "a").close()
         os.startfile(LOG_FILE)
 
+    def set_lang(self, lang):
+        """Switch UI language at runtime and store it in config.json."""
+        with open(srv.CONFIG_FILE, encoding="utf-8") as f:
+            cfg = json.load(f)
+        cfg["lang"] = lang
+        with open(srv.CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+        srv.LANG = lang
+        logging.info("language set to %s", lang)
+        self.refresh()
+
     def toggle_autostart(self, _=None):
         set_autostart(not autostart_enabled())
 
@@ -211,16 +222,22 @@ class App:
     def menu(self):
         return pystray.Menu(
             pystray.MenuItem(lambda _: f"{srv.T('menu_status')}: {self.status}", None, enabled=False),
-            pystray.MenuItem(f"{srv.T('menu_version')} {srv.VERSION}", None, enabled=False),
+            pystray.MenuItem(lambda _: f"{srv.T('menu_version')} {srv.VERSION}", None, enabled=False),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(srv.T("menu_restart"), self.restart),
-            pystray.MenuItem(srv.T("menu_reconnect"), self.reconnect),
-            pystray.MenuItem(srv.T("menu_copy_url"), self.copy_url),
-            pystray.MenuItem(srv.T("menu_open_log"), self.open_log),
-            pystray.MenuItem(srv.T("menu_autostart"), self.toggle_autostart,
+            pystray.MenuItem(lambda _: srv.T("menu_restart"), self.restart),
+            pystray.MenuItem(lambda _: srv.T("menu_reconnect"), self.reconnect),
+            pystray.MenuItem(lambda _: srv.T("menu_copy_url"), self.copy_url),
+            pystray.MenuItem(lambda _: srv.T("menu_open_log"), self.open_log),
+            pystray.MenuItem(lambda _: srv.T("menu_autostart"), self.toggle_autostart,
                              checked=lambda _: autostart_enabled()),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(srv.T("menu_quit"), self.quit),
+            pystray.MenuItem(lambda _: srv.T("menu_quit"), self.quit),
+            pystray.MenuItem(lambda _: srv.T("menu_language"), pystray.Menu(
+                pystray.MenuItem("English", lambda icon, item: self.set_lang("en"),
+                                 checked=lambda _: srv.LANG == "en", radio=True),
+                pystray.MenuItem("Deutsch", lambda icon, item: self.set_lang("de"),
+                                 checked=lambda _: srv.LANG == "de", radio=True),
+            )),
         )
 
     def run(self):
