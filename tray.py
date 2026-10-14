@@ -179,7 +179,9 @@ class App:
     def refresh(self):
         srv_ok = self.server_running()
         desk_ok = desktop_window_open()
-        if srv_ok and desk_ok:
+        if srv_ok and not srv.BOTS:
+            self.status, color = srv.T("status_no_agent"), YELLOW
+        elif srv_ok and desk_ok:
             self.status, color = srv.T("status_ok"), GREEN
         elif srv_ok:
             self.status, color = srv.T("status_no_desktop"), YELLOW
