@@ -21,6 +21,7 @@ import server as srv
 APP_NAME = "Hermes Mobile"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 RUN_VALUE = "HermesMobile"
+SCAN_INTERVAL = 15 * 60  # seconds: re-scan Hermes profiles so a late-starting agent gets picked up
 HERE = srv.HERE
 LOG_FILE = os.path.join(HERE, "tray.log")
 
@@ -161,9 +162,14 @@ class App:
         self.restart()
 
     def watchdog(self):
-        """Restart the server if its thread died without a stop request."""
+        """Restart the server if its thread died without a stop request; re-scan bots every SCAN_INTERVAL."""
+        last_scan = 0.0
         while not self.stopping:
             time.sleep(10)
+            if time.time() - last_scan >= SCAN_INTERVAL:
+                last_scan = time.time()
+                srv.refresh_bots()
+                logging.info("bot scan: %s", ", ".join(srv.BOTS) or "none")
             if self.httpd is not None and not port_answers(srv.HOST, srv.PORT):
                 logging.warning("server not answering, restarting")
                 self.restart()
