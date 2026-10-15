@@ -164,12 +164,18 @@ class App:
     def watchdog(self):
         """Restart the server if its thread died without a stop request; re-scan bots every SCAN_INTERVAL."""
         last_scan = 0.0
+        last_retry = 0.0
         while not self.stopping:
             time.sleep(10)
             if time.time() - last_scan >= SCAN_INTERVAL:
                 last_scan = time.time()
                 srv.refresh_bots()
                 logging.info("bot scan: %s", ", ".join(srv.BOTS) or "none")
+            if self.httpd is None and time.time() - last_retry >= 60:
+                # Start failed earlier (e.g. Tailscale IP not up yet): retry with a fresh IP.
+                last_retry = time.time()
+                logging.info("server down, retrying start")
+                self.reconnect()
             if self.httpd is not None and not port_answers(srv.HOST, srv.PORT):
                 logging.warning("server not answering, restarting")
                 self.restart()
