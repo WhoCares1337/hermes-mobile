@@ -83,7 +83,7 @@ def discover_bots(overrides):
             continue
         try:
             con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=5)
-            n = con.execute("SELECT COUNT(*) FROM sessions WHERE source='desktop'").fetchone()[0]
+            n = con.execute("SELECT COUNT(*) FROM sessions WHERE source IN ('desktop','gui')").fetchone()[0]
             con.close()
         except sqlite3.Error:
             continue
@@ -135,11 +135,11 @@ def bot_session(bot):
         return None
     try:
         row = con.execute(
-            "SELECT id FROM sessions WHERE source='desktop' AND title='Bot Chat' "
+            "SELECT id FROM sessions WHERE source IN ('desktop','gui') AND title='Bot Chat' "
             "ORDER BY started_at DESC LIMIT 1").fetchone()
         if not row:
             row = con.execute(
-                "SELECT id FROM sessions WHERE source='desktop' "
+                "SELECT id FROM sessions WHERE source IN ('desktop','gui') "
                 "ORDER BY started_at DESC LIMIT 1").fetchone()
     finally:
         con.close()
